@@ -1,0 +1,142 @@
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Montserrat:wght@600;700&display=swap');
+
+body {
+    background-color: #f4f4f4;
+    font-family: 'Lato', sans-serif;
+    color: #333;
+    line-height: 1.6;
+    margin: 0;
+    padding: 20px;
+}
+
+.resume-container {
+    background-color: #ffffff;
+    max-width: 850px;
+    margin: 2rem auto;
+    padding: 40px 50px;
+    border: 1px solid #ddd;
+    box-shadow: 0 0 15px rgba(0,0,0,0.05);
+}
+
+.main-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.name {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 2.8em;
+    font-weight: 700;
+    margin: 0 0 10px;
+}
+
+.contact-info {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px 15px;
+    font-size: 0.9em;
+}
+
+.contact-info li {
+    position: relative;
+}
+
+.contact-info li:not(:last-child)::after {
+    content: '•';
+    margin-left: 15px;
+    color: #888;
+}
+
+.contact-info a {
+    color: #333;
+    text-decoration: none;
+}
+
+.contact-info a:hover {
+    text-decoration: underline;
+}
+
+section {
+    margin-bottom: 25px;
+}
+
+.section-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.3em;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #000;
+    border-bottom: 2px solid #333;
+    padding-bottom: 5px;
+    margin-bottom: 15px;
+}
+
+.item {
+    margin-bottom: 20px;
+}
+
+.item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 2px;
+}
+
+.item-title {
+    font-size: 1.1em;
+    font-weight: 700;
+    margin: 0;
+}
+
+.item-date {
+    font-size: 0.9em;
+    font-style: italic;
+    color: #555;
+}
+
+.item-subtitle,
+.item-detail {
+    margin: 2px 0;
+}
+
+.description-list {
+    padding-left: 20px;
+    margin: 5px 0 0;
+}
+
+.description-list li {
+    margin-bottom: 5px;
+}
+
+.tech-category p {
+    margin: 5px 0;
+}
+
+.certifications-section a {
+    color: #333;
+    text-decoration: none;
+}
+
+.certifications-section a:hover {
+    text-decoration: underline;
+}
+
+@media print {
+    body, .resume-container {
+        box-shadow: none;
+        border: none;
+        margin: 0;
+        padding: 0;
+        background-color: #fff;
+    }
+
+    /* ADD THIS RULE */
+    .item {
+        page-break-inside: avoid;
+    }
+}
+
