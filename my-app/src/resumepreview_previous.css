@@ -1,6 +1,3 @@
-
-
-
 /* --- At the very top of your CSS file, import Google Fonts --- */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&family=Lato:wght@400;700&display=swap');
 
@@ -212,12 +209,11 @@
   margin-left: 4px;
 }
 
+/* --- PRINT STYLES --- */
 @media print {
-
   :root {
     --primary-color: #000000;
   }
-
   body, .container {
     box-shadow: none;
     border: none;
@@ -226,77 +222,23 @@
     font-size: 10pt;
     max-width: 100%;
   }
-
   .sidebar {
     background-color: var(--bg-color);
     color: #000;
     width: 30%;
   }
-
   .mainContent {
     width: 70%;
   }
-
-  .sidebar h1,
-  .educationItem b,
-  .itemHeader h3 {
+  .sidebar h1, .educationItem b, .itemHeader h3 {
     color: #000 !important;
   }
-
   .skillsList li,
   .interestsList li {
     background-color: transparent;
     border: 1px solid #ccc;
   }
-
-  /* ===== PAGE BREAK CONTROL (CORRECT VERSION) ===== */
-
-  /* Keep experience/project blocks intact */
-  .experienceItem,
-  .projectItem {
-    break-inside: avoid;
+  .experienceItem, .projectItem, .certificationItem {
     page-break-inside: avoid;
-  }
-
-  /* ✅ DO NOT LOCK certifications */
-  /* Let them flow naturally */
-
-  /* Prevent headings alone at bottom */
-  h2 {
-    break-after: avoid;
-    page-break-after: avoid;
-  }
-
-  /* Keep bullet lists intact */
-  ul {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-
-  /* Prevent ugly single-line leftovers */
-  p, li {
-    orphans: 2;
-    widows: 2;
-  }
- /* Add breathing space when page breaks naturally */
-  .mainContent > section:first-child {
-    margin-top: 0;
-  }
-
-  /* ⭐ THIS IS THE IMPORTANT ONE */
-  section {
-    break-inside: avoid-page;
-  }
-
-  /* When a section moves to a new page, give it top spacing */
-  section::before {
-    content: "";
-    display: block;
-    height: 12px;   /* 👈 adjust 8–18px if needed */
-  }
-
-  /* But avoid extra space on very first page */
-  .mainContent > section:first-child::before {
-    display: none;
   }
 }

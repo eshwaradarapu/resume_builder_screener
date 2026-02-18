@@ -1,5 +1,3 @@
-
-
 import React from "react";
 import styles from './ResumePreview.module.css';
 
@@ -12,6 +10,8 @@ const ResumePreview = React.forwardRef(({ data }, ref) => {
 
   return (
     <div ref={ref} className={styles.container}>
+      
+      {/* ================= SIDEBAR ================= */}
       <aside className={styles.sidebar}>
         <h1>{data.name}</h1>
         
@@ -23,7 +23,6 @@ const ResumePreview = React.forwardRef(({ data }, ref) => {
             {data.github && <p><a href={data.github} target="_blank" rel="noopener noreferrer">GitHub</a></p>}
         </section>
 
-        {/* --- THIS SECTION IS NOW CORRECTED --- */}
         <section>
           <h2>Education</h2>
           <div className={styles.educationItem}>
@@ -39,8 +38,6 @@ const ResumePreview = React.forwardRef(({ data }, ref) => {
               <p>{data.education.school.year} | {data.education.school.grade}</p>
           </div>
         </section>
-        {/* ------------------------------------ */}
-
 
         {skillsArray.length > 0 && (
           <section>
@@ -50,6 +47,7 @@ const ResumePreview = React.forwardRef(({ data }, ref) => {
             </ul>
           </section>
         )}
+
         {interestsArray.length > 0 && (
           <section>
             <h2>Interests</h2>
@@ -60,6 +58,7 @@ const ResumePreview = React.forwardRef(({ data }, ref) => {
         )}
       </aside>
 
+      {/* ================= MAIN CONTENT ================= */}
       <main className={styles.mainContent}>
         
         {data.summary && (
@@ -69,31 +68,82 @@ const ResumePreview = React.forwardRef(({ data }, ref) => {
           </section>
         )}
 
+        {/* ================= EXPERIENCE (UPDATED) ================= */}
         {validExperiences.length > 0 && (
           <section>
             <h2>Experience</h2>
+
             {validExperiences.map((exp, index) => (
               <div key={index} className={styles.experienceItem}>
-                  <div className={styles.itemHeader}>
-                      <h3>{exp.title}</h3>
-                      <span>{exp.company}</span>
-                  </div>
+
+                <div className={styles.itemHeader}>
+                  <h3>{exp.title}</h3>
+
+                  <span>
+                    {exp.company}
+
+                    {(exp.startYear || exp.endYear) && (
+                      <span className={styles.expYears}>
+                        {" "}
+                        ({exp.startYear || ""}
+                        {exp.startYear && exp.endYear ? "–" : ""}
+                        {exp.endYear || (exp.startYear ? "Present" : "")})
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                {/* ✅ IF STRUCTURED BULLETS EXIST */}
+                {exp.structured ? (
+                  <ul className={styles.projectBullets}>
+                    {exp.structured.experience_summary.map((bullet, i) => (
+                      <li key={i}>
+                        • {Array.isArray(bullet) ? bullet.join(" ") : bullet}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
                   <p className={styles.itemDescription}>{exp.description}</p>
+                )}
+
               </div>
             ))}
           </section>
         )}
 
+        {/* ================= PROJECTS ================= */}
         {data.projects && data.projects.filter(p => p.title).length > 0 && (
           <section>
             <h2>Projects</h2>
+
             {data.projects.map((proj, index) => (
               proj.title && (
                 <div key={index} className={styles.projectItem}>
+                    
                     <div className={styles.itemHeader}>
                         <h3>{proj.title}</h3>
                     </div>
-                    <p className={styles.itemDescription}>{proj.description}</p>
+
+                    {proj.structured ? (
+                      <>
+                        {proj.structured.tech_stack && (
+                          <p className={styles.techStack}>
+                            <b>Tech Stack:</b> {proj.structured.tech_stack.join(", ")}
+                          </p>
+                        )}
+
+                        <ul className={styles.projectBullets}>
+                          {proj.structured.project_summary.map((bulletArr, i) => (
+                            <li key={i}>
+                              • {Array.isArray(bulletArr) ? bulletArr.join(" ") : bulletArr}
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : (
+                      <p className={styles.itemDescription}>{proj.description}</p>
+                    )}
+
                 </div>
               )
             ))}
@@ -114,10 +164,10 @@ const ResumePreview = React.forwardRef(({ data }, ref) => {
             ))}
           </section>
         )}
+
       </main>
     </div>
   );
 });
 
 export default ResumePreview;
-
