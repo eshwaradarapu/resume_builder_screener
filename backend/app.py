@@ -9,6 +9,10 @@ from dotenv import load_dotenv
 from bson.objectid import ObjectId
 import google.generativeai as genai
 import json
+import tempfile
+import subprocess
+from flask import send_file
+
 
 # ==============================================================================
 # INITIAL SETUP & CONFIGURATION
@@ -252,6 +256,7 @@ def get_resume():
         return jsonify({"error": str(e)}), 500
 
 
+
 @app.route('/api/resume', methods=['POST'])
 def save_resume():
     user_id = get_user_id_from_token(request)
@@ -268,23 +273,52 @@ def save_resume():
 
             # ===== EXPERIENCE STRUCTURED =====
             for exp in form_data.get('experience', []):
-                if exp.get('description'):
-                    structured = generate_experience_json(exp['description'])
+                description = exp.get('description', '').strip()
+                structured = exp.get('structured')
+
+                summary = structured.get("experience_summary") if structured else None
+                bullet_count = len(summary) if summary else 0
+
+                # ⭐ AI needed if:
+                # - no structured OR
+                # - only 1 bullet (manual conversion)
+                needs_ai = (
+                    not structured
+                    or bullet_count <= 1
+                )
+
+                if description and needs_ai:
+                    print(f"AI running for experience: {exp.get('title')}")
+                    structured = generate_experience_json(description)
+
                     if structured:
                         structured['experience_summary'] = normalize_nested(
                             structured.get('experience_summary')
                         )
                         exp['structured'] = structured
 
+
             # ===== PROJECT STRUCTURED =====
             for proj in form_data.get('projects', []):
-                if proj.get('description'):
-                    structured = generate_project_json(proj['description'])
+                description = proj.get('description', '').strip()
+                structured = proj.get('structured')
+
+                # ⭐ AI needed if no tech stack
+                needs_ai = (
+                    not structured
+                    or not structured.get("tech_stack")
+                )
+
+                if description and needs_ai:
+                    print(f"AI running for project: {proj.get('title')}")
+                    structured = generate_project_json(description)
+
                     if structured:
                         structured['project_summary'] = normalize_nested(
                             structured.get('project_summary')
                         )
                         proj['structured'] = structured
+
 
         form_data.pop("_id", None)
 
@@ -300,6 +334,30 @@ def save_resume():
         print("SAVE ERROR:", e)
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/generate-pdf', methods=['POST'])
+def generate_pdf():
+    try:
+        html = request.json.get("html")
+
+        if not html:
+            return jsonify({"error": "No HTML provided"}), 400
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as f:
+            f.write(html.encode("utf-8"))
+            html_path = f.name
+
+        pdf_path = html_path.replace(".html", ".pdf")
+
+        BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        PDF_SCRIPT = os.path.join(BASE_DIR, "pdf-service", "runPdf.js")
+
+        subprocess.run(["node", PDF_SCRIPT, html_path, pdf_path],check=True)
+
+        return send_file(pdf_path, as_attachment=True, download_name="resume.pdf")
+
+    except Exception as e:
+        print("PDF error:", e)
+        return jsonify({"error": str(e)}), 500
 
 # ==============================================================================
 # RUN APP

@@ -16,35 +16,98 @@ function ResumeForm({ token, onResumeCreated, initialData, mode, onBack }) {
     projects: [{ title: "", description: "" }],
   });
 
-  const [form, setForm] = useState(initialData || getInitialFormState());
+const prepareInitialData = (data) => {
+  if (!data) return getInitialFormState();
+
+  return {
+    ...data,
+
+    experience: data.experience?.map(exp => {
+      if (exp.structured?.experience_summary?.length) {
+        return {
+          ...exp,
+          description: exp.structured.experience_summary
+            .map(b => Array.isArray(b) ? b.join(" ") : b)
+            .join("\n")   // ⭐ line by line
+        };
+      }
+      return exp;
+    }) || [{ title:"", company:"", startYear:"", endYear:"", description:"" }],
+
+    projects: data.projects?.map(proj => {
+      if (proj.structured?.project_summary?.length) {
+        return {
+          ...proj,
+          description: proj.structured.project_summary
+            .map(b => Array.isArray(b) ? b.join(" ") : b)
+            .join("\n")   // ⭐ line by line
+        };
+      }
+      return proj;
+    }) || [{ title:"", description:"" }]
+  };
+};
+
+const [form, setForm] = useState(prepareInitialData(initialData));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // ✅ UPDATED: now accepts useAI flag
-  const handleSubmit = async (useAI = true) => {
-    setIsSubmitting(true);
-    setError('');
+  const linesToBullets = (text) => {
+  if (!text) return [];
 
-    try {
-      const response = await axios.post(
-        'http://localhost:5000/api/resume',
-        { ...form, use_ai: useAI },   // ✅ send flag to backend
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
+  return text
+    .split("\n")
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+    .map(line => [line]);
+};
+const handleSubmit = async (useAI = true) => {
+  setIsSubmitting(true);
+  setError('');
+
+  try {
+
+    let payload = { ...form };
+
+    // ⭐ ONLY convert when saving draft (useAI = false)
+    if (!useAI) {
+
+      payload.projects = payload.projects.map(proj => ({
+        ...proj,
+        structured: {
+          ...proj.structured,
+          project_summary: linesToBullets(proj.description)
         }
-      );
-      
-      onResumeCreated(response.data.data);
+      }));
 
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to save your resume.');
-    } finally {
-      setIsSubmitting(false);
+      payload.experience = payload.experience.map(exp => ({
+        ...exp,
+        structured: {
+          ...exp.structured,
+          experience_summary: linesToBullets(exp.description)
+        }
+      }));
     }
-  };
+
+    const response = await axios.post(
+      'http://localhost:5000/api/resume',
+      { ...payload, use_ai: useAI },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
+
+    onResumeCreated(response.data.data);
+
+  } catch (err) {
+    setError(err.response?.data?.error || 'Failed to save your resume.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 

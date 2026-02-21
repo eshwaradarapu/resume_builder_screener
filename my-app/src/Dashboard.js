@@ -9,10 +9,58 @@ function Dashboard({ resumeData, onEdit }) {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const componentRef = useRef();
 
+  /*
   const handlePrint = useReactToPrint({
     content: () => componentRef.current,
     documentTitle: `${resumeData?.name || "Resume"}_Resume`,
-  });
+  });  */
+
+ const handleDownloadPDF = async () => {
+  if (!componentRef.current) return;
+
+  const html = componentRef.current.outerHTML;
+
+  // ✅ Grab all styles + CSS links from the page
+  const styles = Array.from(document.querySelectorAll("style, link[rel='stylesheet']"))
+    .map(el => el.outerHTML)
+    .join("\n");
+
+  // ✅ Build full HTML document
+  const fullHTML = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8" />
+        ${styles}
+      </head>
+      <body>
+        ${html}
+      </body>
+    </html>
+  `;
+
+  try {
+    const res = await fetch("http://localhost:5000/api/generate-pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ html: fullHTML })
+    });
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "resume.pdf";
+    a.click();
+
+    window.URL.revokeObjectURL(url);
+
+  } catch (err) {
+    console.error("PDF download failed:", err);
+  }
+};
+
 
   // Function to render the correct template based on the selection
   const renderSelectedTemplate = () => {
@@ -33,7 +81,7 @@ function Dashboard({ resumeData, onEdit }) {
       <div>
         <div style={{ marginBottom: "20px", display: "flex", gap: "10px" }}>
           <button onClick={() => setSelectedTemplate(null)}>← Back to Templates</button>
-          <button onClick={handlePrint}>📄 Download as PDF</button>
+          <button onClick={handleDownloadPDF}>📄 Download as PDF</button>
          
         </div>
         {renderSelectedTemplate()}

@@ -1,0 +1,7 @@
+{
+  "name": "pdf-service",
+  "version": "1.0.0",
+  "dependencies": {
+    "puppeteer": "^24.15.0"
+  }
+}

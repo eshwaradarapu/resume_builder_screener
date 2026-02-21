@@ -23,11 +23,14 @@
   background-color: var(--bg-color);
   border: 1px solid var(--border-color);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+
+  width: 850px;        /* fixed width for stable layout */
   max-width: 850px;
   margin: 2rem auto;
   border-radius: 8px;
   overflow: hidden;
 }
+
 
 /* --- Left Column (Sidebar) --- */
 .sidebar {
@@ -218,13 +221,16 @@
     --primary-color: #000000;
   }
 
-  body, .container {
+  body {
+    margin: 0;
+    background: white;
+  }
+
+  .container {
     box-shadow: none;
     border: none;
-    margin: 0;
-    padding: 0;
-    font-size: 10pt;
-    max-width: 100%;
+    margin: 0 auto;
+    width: 850px;
   }
 
   .sidebar {
@@ -249,54 +255,121 @@
     border: 1px solid #ccc;
   }
 
-  /* ===== PAGE BREAK CONTROL (CORRECT VERSION) ===== */
+  /* ===== SMART PAGE BREAK RULES ===== */
 
-  /* Keep experience/project blocks intact */
+  /* allow sections to flow naturally */
+  section {
+    break-inside: auto;
+  }
+
+  /* keep items intact */
   .experienceItem,
-  .projectItem {
+  .projectItem,
+  .certificationItem {
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
-  /* ✅ DO NOT LOCK certifications */
-  /* Let them flow naturally */
-
-  /* Prevent headings alone at bottom */
-  h2 {
-    break-after: avoid;
-    page-break-after: avoid;
-  }
-
-  /* Keep bullet lists intact */
+  /* keep lists neat */
   ul {
     break-inside: avoid;
-    page-break-inside: avoid;
   }
 
-  /* Prevent ugly single-line leftovers */
+  /* keep headings with content */
+  h2 {
+    break-after: avoid;
+  }
+
+  /* avoid orphan lines */
   p, li {
     orphans: 2;
     widows: 2;
   }
- /* Add breathing space when page breaks naturally */
-  .mainContent > section:first-child {
-    margin-top: 0;
-  }
+/* ===== PRINT COMPACT MODE ===== */
 
-  /* ⭐ THIS IS THE IMPORTANT ONE */
-  section {
-    break-inside: avoid-page;
-  }
+/* slightly reduce font size */
+body {
+  font-size: 9.6pt;
+}
 
-  /* When a section moves to a new page, give it top spacing */
-  section::before {
-    content: "";
-    display: block;
-    height: 12px;   /* 👈 adjust 8–18px if needed */
-  }
+/* tighten headings */
+h2 {
+  margin-bottom: 12px !important;
+  padding-bottom: 6px !important;
+}
 
-  /* But avoid extra space on very first page */
-  .mainContent > section:first-child::before {
-    display: none;
-  }
+/* reduce section spacing */
+section {
+  margin-bottom: 12px !important;
+}
+
+/* reduce item spacing */
+.experienceItem,
+.projectItem,
+.certificationItem {
+  margin-bottom: 16px !important;
+}
+
+/* tighten paragraphs */
+p {
+  line-height: 1.45 !important;
+  margin-bottom: 6px !important;
+}
+
+/* tighten lists */
+li {
+  line-height: 1.45 !important;
+  margin-bottom: 3px !important;
+}
+
+/* tighten sidebar spacing */
+.sidebar {
+  padding: 24px !important;
+}
+
+.mainContent {
+  padding: 24px !important;
+}
+/* ===== FINAL PAGE FIT TUNING ===== */
+
+/* slightly shrink sidebar content */
+.sidebar {
+  padding: 22px !important;
+}
+
+/* reduce skills pill spacing */
+.skillsList {
+  gap: 5px !important;
+}
+
+.skillsList li {
+  padding: 4px 10px !important;
+  font-size: 0.85em !important;
+}
+
+/* tighten project blocks */
+.projectItem {
+  margin-bottom: 14px !important;
+}
+
+/* tighten headings slightly */
+.mainContent h2 {
+  margin-bottom: 14px !important;
+}
+
+/* tighten list spacing */
+.projectBullets li {
+  margin-bottom: 2px !important;
+}
+
+/* reduce global paragraph spacing a bit more */
+p {
+  margin-bottom: 5px !important;
+}
+@page {
+  margin-top: 18mm;
+  margin-bottom: 12mm;
+  margin-left: 10mm;
+  margin-right: 10mm;
+}
 }
