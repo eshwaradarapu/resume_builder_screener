@@ -4,7 +4,7 @@ import axios from 'axios';
 function ResumeForm({ token, onResumeCreated, initialData, mode, onBack }) {
 
   const getInitialFormState = () => ({
-    name: "", email: "", phone: "", summary: "", linkedin: "", github: "", interests: "",
+    name: "", email: "", phone: "", summary: "", linkedin: "", github: "", interests: "", location: "",
     education: {
       school: { name: "", year: "", grade: "" },
       intermediate: { name: "", year: "", grade: "" },
@@ -184,6 +184,14 @@ const handleSubmit = async (useAI = true) => {
 
       <h3>Skills</h3>
       <input name="skills" value={form.skills} onChange={handleChange} required /><br />
+      <h3>Location</h3>
+<input
+  placeholder="Preferred job location (e.g., Hyderabad, Bangalore, Remote)"
+  name="location"
+  value={form.location}
+  onChange={handleChange}
+  required
+/><br />
       
       <h3>Interests</h3>
       <input name="interests" value={form.interests} onChange={handleChange} /><br />

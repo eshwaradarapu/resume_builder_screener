@@ -11,6 +11,7 @@ import google.generativeai as genai
 import json
 import tempfile
 import subprocess
+import requests
 from flask import send_file
 
 
@@ -44,6 +45,63 @@ JWT_SECRET = os.getenv("JWT_SECRET_KEY")
 # ==============================================================================
 # HELPER FUNCTIONS
 # ==============================================================================
+N8N_WEBHOOK_URL = "http://localhost:5678/webhook/76bc8864-7530-4772-a167-1927ca5d718b"   # ← replace
+
+def fetch_jobs_from_n8n(skills, location, experience=0):
+    try:
+        payload = {
+            "skills": skills if isinstance(skills, list) else skills.split(","),
+            "location": location,
+            "experience": experience
+        }
+
+        res = requests.post(N8N_WEBHOOK_URL, json=payload, timeout=20)
+        res.raise_for_status()
+        return res.json()
+
+    except Exception as e:
+        print("N8N job fetch error:", e)
+        return []
+
+def generate_roles_from_skills(skills):
+    if not ai_model:
+        return skills[:3] if isinstance(skills, list) else []
+
+    skills_text = ", ".join(skills)
+
+    prompt = f"""
+You are a career assistant.
+
+Based on these skills:
+{skills_text}
+
+Return ONLY valid JSON.
+
+RULES:
+- Suggest exactly 3 realistic job roles
+- Roles must be common LinkedIn titles
+- No explanation text
+
+FORMAT:
+{{
+  "roles": ["Role 1", "Role 2", "Role 3"]
+}}
+"""
+
+    try:
+        response = ai_model.generate_content(prompt)
+        text = response.text.strip()
+
+        if text.startswith("```"):
+            text = text.split("```")[1].replace("json", "").strip()
+
+        parsed = json.loads(text)
+        return parsed.get("roles", [])
+
+    except Exception as e:
+        print("Role generation failed:", e)
+        return skills[:3]
+    
 
 def get_user_id_from_token(request):
     try:
@@ -358,7 +416,74 @@ def generate_pdf():
     except Exception as e:
         print("PDF error:", e)
         return jsonify({"error": str(e)}), 500
+    
+@app.route('/api/jobs', methods=['GET'])
+def get_jobs_for_user():
+    user_id = get_user_id_from_token(request)
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
 
+    try:
+        resume = resumes_collection.find_one({"user_id": ObjectId(user_id)})
+        if not resume:
+            return jsonify({"jobs": []}), 200
+
+        # =========================
+        # CHECK IF WE FETCHED TODAY
+        # =========================
+        last_fetch = resume.get("last_job_fetch")
+        cached_jobs = resume.get("cached_jobs", [])
+
+        if last_fetch:
+            if datetime.utcnow() - last_fetch < timedelta(hours=24):
+                print("Returning cached jobs")
+                return jsonify({"jobs": cached_jobs}), 200
+
+        # =========================
+        # STEP 1: GET SKILLS
+        # =========================
+        skills = resume.get("skills", "")
+        location = resume.get("location", "")
+        experience = 0
+
+        if isinstance(skills, str):
+            skills = [s.strip() for s in skills.split(",") if s.strip()]
+
+        # =========================
+        # STEP 2: AI → TOP ROLES
+        # =========================
+        roles = generate_roles_from_skills(skills)
+        print("AI suggested roles:", roles)
+
+        # =========================
+        # STEP 3: CALL N8N FLOW
+        # =========================
+        jobs = fetch_jobs_from_n8n(roles, location, experience)
+
+        # =========================
+        # STEP 4: SAVE CACHE
+        # =========================
+        resumes_collection.update_one(
+            {"user_id": ObjectId(user_id)},
+            {
+                "$set": {
+                    "cached_jobs": jobs,
+                    "last_job_fetch": datetime.utcnow(),
+                    "recommended_roles": roles
+                }
+            }
+        )
+
+        print("Fetched fresh jobs from n8n")
+
+        return jsonify({
+            "jobs": jobs,
+            "roles": roles
+        }), 200
+
+    except Exception as e:
+        print("Jobs route error:", e)
+        return jsonify({"error": str(e)}), 500
 # ==============================================================================
 # RUN APP
 # ==============================================================================
