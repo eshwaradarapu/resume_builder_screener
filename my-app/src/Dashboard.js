@@ -1,122 +1,184 @@
-import React, { useState, useRef } from 'react';
-import { useReactToPrint } from 'react-to-print';
-import ResumePreview from './ResumePreview'; // Your first custom template
-// We will import more templates here as we create them
+import React, { useState, useRef, useEffect } from 'react';
+import axios from "axios";
+import ResumePreview from './ResumePreview';
 
-// The Dashboard receives the user's saved data and a function to handle editing
-function Dashboard({ resumeData, onEdit }) {
-  // This state tracks which template is currently being viewed
+function Dashboard({ resumeData, onEdit, token }) {
+
   const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [jobs, setJobs] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [loadingJobs, setLoadingJobs] = useState(true);
+
   const componentRef = useRef();
 
-  /*
-  const handlePrint = useReactToPrint({
-    content: () => componentRef.current,
-    documentTitle: `${resumeData?.name || "Resume"}_Resume`,
-  });  */
+  // ================= FETCH JOBS =================
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const res = await axios.get(
+          "http://localhost:5000/api/jobs",
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
 
- const handleDownloadPDF = async () => {
-  if (!componentRef.current) return;
+        setJobs(res.data.jobs || []);
+        setRoles(res.data.roles || []);
 
-  const html = componentRef.current.outerHTML;
+      } catch (err) {
+        console.error("Job fetch failed:", err);
+      } finally {
+        setLoadingJobs(false);
+      }
+    };
 
-  // ✅ Grab all styles + CSS links from the page
-  const styles = Array.from(document.querySelectorAll("style, link[rel='stylesheet']"))
-    .map(el => el.outerHTML)
-    .join("\n");
+    fetchJobs();
+  }, [token]);
 
-  // ✅ Build full HTML document
-  const fullHTML = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="UTF-8" />
-        ${styles}
-      </head>
-      <body>
-        ${html}
-      </body>
-    </html>
-  `;
+  // ================= PDF DOWNLOAD =================
+  const handleDownloadPDF = async () => {
+    if (!componentRef.current) return;
 
-  try {
-    const res = await fetch("http://localhost:5000/api/generate-pdf", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ html: fullHTML })
-    });
+    const html = componentRef.current.outerHTML;
 
-    const blob = await res.blob();
-    const url = window.URL.createObjectURL(blob);
+    const styles = Array.from(document.querySelectorAll("style, link[rel='stylesheet']"))
+      .map(el => el.outerHTML)
+      .join("\n");
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "resume.pdf";
-    a.click();
+    const fullHTML = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8" />
+          ${styles}
+        </head>
+        <body>
+          ${html}
+        </body>
+      </html>
+    `;
 
-    window.URL.revokeObjectURL(url);
+    try {
+      const res = await fetch("http://localhost:5000/api/generate-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ html: fullHTML })
+      });
 
-  } catch (err) {
-    console.error("PDF download failed:", err);
-  }
-};
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
 
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "resume.pdf";
+      a.click();
 
-  // Function to render the correct template based on the selection
+      window.URL.revokeObjectURL(url);
+
+    } catch (err) {
+      console.error("PDF download failed:", err);
+    }
+  };
+
+  // ================= TEMPLATE RENDER =================
   const renderSelectedTemplate = () => {
     switch (selectedTemplate) {
       case 'Custom':
         return <ResumePreview ref={componentRef} data={resumeData} />;
-      // Add more cases here for future templates
-      // case 'Classic':
-      //   return <TemplateClassic ref={componentRef} data={resumeData} />;
       default:
         return <div>Please select a template.</div>;
     }
   };
 
-  // If a template has been selected, show the preview view
+  // ================= TEMPLATE VIEW MODE =================
   if (selectedTemplate) {
     return (
       <div>
         <div style={{ marginBottom: "20px", display: "flex", gap: "10px" }}>
           <button onClick={() => setSelectedTemplate(null)}>← Back to Templates</button>
           <button onClick={handleDownloadPDF}>📄 Download as PDF</button>
-         
         </div>
         {renderSelectedTemplate()}
       </div>
     );
   }
 
-  // --- This is the main dashboard view with template cards ---
+  // ================= MAIN DASHBOARD VIEW =================
   return (
     <div>
+
+      {/* ===== JOB SECTION ===== */}
+      <h2>Jobs For You</h2>
+
+      {loadingJobs ? (
+        <p>Loading jobs...</p>
+      ) : (
+        <>
+          {/* Recommended Roles */}
+          {roles.length > 0 && (
+            <div style={{ marginBottom: "15px" }}>
+              <strong>Recommended Roles:</strong><br/>
+              {roles.map((r, i) => (
+                <span key={i} style={{
+                  padding: "6px 12px",
+                  margin: "5px",
+                  background: "#e6f2ff",
+                  borderRadius: "20px",
+                  display: "inline-block"
+                }}>
+                  {r}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Job Cards */}
+          {jobs.length === 0 ? (
+            <p>No jobs available yet.</p>
+          ) : (
+       jobs.map((job, i) => (
+              <div key={i} style={{
+                border: "1px solid #ddd",
+                padding: "12px",
+                marginBottom: "10px",
+                borderRadius: "6px"
+              }}>
+                <strong>{job.title}</strong><br/>
+                {job.organization}<br/>
+                {job.locations_derived?.[0]?.city || ""}<br/>
+
+                <a href={job.url} target="_blank" rel="noreferrer">
+                  Apply
+                </a>
+              </div>
+            ))
+          )}
+        </>
+      )}
+
+      <hr style={{ margin: "30px 0" }} />
+
+      {/* ===== TEMPLATE SECTION ===== */}
       <h2>Choose a Template</h2>
       <p>Select a template to view your resume.</p>
-       <button onClick={onEdit}>✏️ Edit Resume Data</button>
+
+      <button onClick={onEdit}>✏️ Edit Resume Data</button>
+
       <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
-        
-        {/* Template Card 1 */}
-        <div 
-          onClick={() => setSelectedTemplate('Custom')} 
-          style={{ 
-            border: '1px solid #ccc', 
-            borderRadius: '8px', 
-            padding: '20px', 
-            width: '200px', 
-            textAlign: 'center', 
+
+        <div
+          onClick={() => setSelectedTemplate('Custom')}
+          style={{
+            border: '1px solid #ccc',
+            borderRadius: '8px',
+            padding: '20px',
+            width: '200px',
+            textAlign: 'center',
             cursor: 'pointer',
-            boxShadow: '0 2px 5px rgba(0,0,0,0.1)' 
+            boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
           }}
         >
-          {/* You can add a small image preview of the template here */}
-          
           <h3 style={{ marginTop: '10px' }}>Modern Template</h3>
         </div>
 
-        {/* Add more template cards here in the future */}
-        
       </div>
     </div>
   );

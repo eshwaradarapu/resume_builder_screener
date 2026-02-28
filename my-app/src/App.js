@@ -85,7 +85,7 @@ function App() {
           
           {userHasData ? (
             // If the user has data, show the Dashboard
-            <Dashboard resumeData={resumeData} onEdit={handleEdit} />
+           <Dashboard resumeData={resumeData} onEdit={handleEdit} token={token} />
           ) : (
             // If the user is new (no data), show the form
             <ResumeForm

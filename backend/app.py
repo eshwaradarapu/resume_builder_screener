@@ -327,6 +327,19 @@ def save_resume():
     form_data.pop("use_ai", None)
 
     try:
+        # =========================
+        # GET EXISTING RESUME FIRST
+        # =========================
+        existing_resume = resumes_collection.find_one({"user_id": ObjectId(user_id)})
+
+        old_skills = existing_resume.get("skills") if existing_resume else None
+        old_location = existing_resume.get("location") if existing_resume else None
+        cached_jobs = existing_resume.get("cached_jobs", []) if existing_resume else []
+        cached_roles = existing_resume.get("recommended_roles", []) if existing_resume else []
+
+        # =========================
+        # YOUR EXISTING AI LOGIC
+        # =========================
         if ai_model and use_ai:
 
             # ===== EXPERIENCE STRUCTURED =====
@@ -337,9 +350,6 @@ def save_resume():
                 summary = structured.get("experience_summary") if structured else None
                 bullet_count = len(summary) if summary else 0
 
-                # ⭐ AI needed if:
-                # - no structured OR
-                # - only 1 bullet (manual conversion)
                 needs_ai = (
                     not structured
                     or bullet_count <= 1
@@ -355,13 +365,11 @@ def save_resume():
                         )
                         exp['structured'] = structured
 
-
             # ===== PROJECT STRUCTURED =====
             for proj in form_data.get('projects', []):
                 description = proj.get('description', '').strip()
                 structured = proj.get('structured')
 
-                # ⭐ AI needed if no tech stack
                 needs_ai = (
                     not structured
                     or not structured.get("tech_stack")
@@ -377,7 +385,9 @@ def save_resume():
                         )
                         proj['structured'] = structured
 
-
+        # =========================
+        # SAVE RESUME
+        # =========================
         form_data.pop("_id", None)
 
         resumes_collection.update_one(
@@ -386,7 +396,59 @@ def save_resume():
             upsert=True
         )
 
-        return jsonify({"success": True, "data": form_data}), 200
+        # =========================
+        # CHECK IF SKILLS/LOCATION CHANGED
+        # =========================
+        new_skills = form_data.get("skills")
+        new_location = form_data.get("location")
+
+        skills_changed = new_skills != old_skills or new_location != old_location
+
+        jobs = cached_jobs
+        roles = cached_roles
+
+        # =========================
+        # REFRESH JOBS ONLY IF CHANGED
+        # =========================
+        if skills_changed:
+            print("Skills/location changed → refreshing jobs")
+
+            skills = new_skills or ""
+            location = new_location or ""
+            experience = 0
+
+            if isinstance(skills, str):
+                skills = [s.strip() for s in skills.split(",") if s.strip()]
+
+            # AI → top roles
+            roles = generate_roles_from_skills(skills)
+
+            # Call n8n workflow
+            jobs = fetch_jobs_from_n8n(roles, location, experience)
+
+            # Save jobs + roles + timestamp
+            resumes_collection.update_one(
+                {"user_id": ObjectId(user_id)},
+                {
+                    "$set": {
+                        "cached_jobs": jobs,
+                        "recommended_roles": roles,
+                        "last_job_fetch": datetime.utcnow()
+                    }
+                }
+            )
+        else:
+            print("Skills unchanged → keeping cached jobs")
+
+        # =========================
+        # RESPONSE
+        # =========================
+        return jsonify({
+            "success": True,
+            "data": form_data,
+            "jobs": jobs,
+            "roles": roles
+        }), 200
 
     except Exception as e:
         print("SAVE ERROR:", e)
@@ -434,10 +496,12 @@ def get_jobs_for_user():
         last_fetch = resume.get("last_job_fetch")
         cached_jobs = resume.get("cached_jobs", [])
 
-        if last_fetch:
-            if datetime.utcnow() - last_fetch < timedelta(hours=24):
-                print("Returning cached jobs")
-                return jsonify({"jobs": cached_jobs}), 200
+        if last_fetch and datetime.utcnow() - last_fetch < timedelta(hours=24):
+            print("Returning cached jobs")
+            return jsonify({
+                "jobs": cached_jobs,
+                "roles": resume.get("recommended_roles", [])
+            }), 200
 
         # =========================
         # STEP 1: GET SKILLS
