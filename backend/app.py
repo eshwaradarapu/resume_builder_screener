@@ -47,6 +47,24 @@ JWT_SECRET = os.getenv("JWT_SECRET_KEY")
 # ==============================================================================
 N8N_WEBHOOK_URL = "http://localhost:5678/webhook/76bc8864-7530-4772-a167-1927ca5d718b"   # ← replace
 
+
+def remove_duplicates(jobs):
+    seen = set()
+    unique_jobs = []
+
+    for job in jobs:
+        key = (
+            job.get("title", "").strip().lower(),
+            job.get("organization", "").strip().lower(),
+            job.get("locations_derived", [""])[0].strip().lower()
+        )
+
+        if key not in seen:
+            seen.add(key)
+            unique_jobs.append(job)
+
+    return unique_jobs
+
 def fetch_jobs_from_n8n(skills, location, experience=0):
     try:
         payload = {
@@ -56,6 +74,9 @@ def fetch_jobs_from_n8n(skills, location, experience=0):
         }
 
         res = requests.post(N8N_WEBHOOK_URL, json=payload, timeout=20)
+        print("Status:", res.status_code)
+        print("Raw response:", res.text)  # 🔥 ADD THIS
+
         res.raise_for_status()
         return res.json()
 
@@ -425,6 +446,8 @@ def save_resume():
 
             # Call n8n workflow
             jobs = fetch_jobs_from_n8n(roles, location, experience)
+            jobs=remove_duplicates(jobs)
+            
 
             # Save jobs + roles + timestamp
             resumes_collection.update_one(
@@ -500,7 +523,8 @@ def get_jobs_for_user():
             print("Returning cached jobs")
             return jsonify({
                 "jobs": cached_jobs,
-                "roles": resume.get("recommended_roles", [])
+                "roles": resume.get("recommended_roles", []),
+                "last_updated": resume.get("last_job_fetch")
             }), 200
 
         # =========================
@@ -523,7 +547,8 @@ def get_jobs_for_user():
         # STEP 3: CALL N8N FLOW
         # =========================
         jobs = fetch_jobs_from_n8n(roles, location, experience)
-
+        jobs=remove_duplicates(jobs)
+     
         # =========================
         # STEP 4: SAVE CACHE
         # =========================
@@ -542,7 +567,8 @@ def get_jobs_for_user():
 
         return jsonify({
             "jobs": jobs,
-            "roles": roles
+            "roles": roles,
+            "last_updated": resume.get("last_job_fetch")
         }), 200
 
     except Exception as e:

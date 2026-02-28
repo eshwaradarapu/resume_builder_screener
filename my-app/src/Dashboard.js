@@ -8,6 +8,8 @@ function Dashboard({ resumeData, onEdit, token }) {
   const [jobs, setJobs] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [timeAgo, setTimeAgo] = useState("");
 
   const componentRef = useRef();
 
@@ -22,6 +24,7 @@ function Dashboard({ resumeData, onEdit, token }) {
 
         setJobs(res.data.jobs || []);
         setRoles(res.data.roles || []);
+        setLastUpdated(res.data.last_updated);
 
       } catch (err) {
         console.error("Job fetch failed:", err);
@@ -32,6 +35,37 @@ function Dashboard({ resumeData, onEdit, token }) {
 
     fetchJobs();
   }, [token]);
+
+  // ================= TIME AGO HELPER =================
+  const getTimeAgo = (timestamp) => {
+    if (!timestamp) return "";
+
+    const now = new Date();
+    const updated = new Date(timestamp);
+    const diffMs = now - updated;
+
+    const minutes = Math.floor(diffMs / 60000);
+    const hours = Math.floor(diffMs / (60000 * 60));
+
+    if (minutes < 1) return "Just now";
+    if (minutes < 60) return `${minutes} minute(s) ago`;
+    return `${hours} hour(s) ago`;
+  };
+
+  // ================= LIVE TIMER =================
+  useEffect(() => {
+    if (!lastUpdated) return;
+
+    const updateTimer = () => {
+      setTimeAgo(getTimeAgo(lastUpdated));
+    };
+
+    updateTimer(); // initial call
+
+    const interval = setInterval(updateTimer, 60000);
+
+    return () => clearInterval(interval);
+  }, [lastUpdated]);
 
   // ================= PDF DOWNLOAD =================
   const handleDownloadPDF = async () => {
@@ -108,6 +142,24 @@ function Dashboard({ resumeData, onEdit, token }) {
       {/* ===== JOB SECTION ===== */}
       <h2>Jobs For You</h2>
 
+      {/* ⭐ Last Updated Timer */}
+   {lastUpdated && (
+  <div style={{
+    marginBottom: "15px",
+    padding: "10px 15px",
+    background: "#f0f8ff",
+    borderLeft: "4px solid #007bff",
+    borderRadius: "6px",
+    fontSize: "14px",
+    fontWeight: "500",
+    color: "#333",
+    fontWeight: "bold",
+    display: "inline-block"
+  }}>
+    ⏳ Last updated: <span style={{ color: "#007bff" }}>{timeAgo}</span>
+  </div>
+)}
+
       {loadingJobs ? (
         <p>Loading jobs...</p>
       ) : (
@@ -134,7 +186,7 @@ function Dashboard({ resumeData, onEdit, token }) {
           {jobs.length === 0 ? (
             <p>No jobs available yet.</p>
           ) : (
-       jobs.map((job, i) => (
+            jobs.map((job, i) => (
               <div key={i} style={{
                 border: "1px solid #ddd",
                 padding: "12px",
@@ -163,7 +215,6 @@ function Dashboard({ resumeData, onEdit, token }) {
       <button onClick={onEdit}>✏️ Edit Resume Data</button>
 
       <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
-
         <div
           onClick={() => setSelectedTemplate('Custom')}
           style={{
@@ -178,7 +229,6 @@ function Dashboard({ resumeData, onEdit, token }) {
         >
           <h3 style={{ marginTop: '10px' }}>Modern Template</h3>
         </div>
-
       </div>
     </div>
   );
