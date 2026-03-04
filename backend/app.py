@@ -2,6 +2,7 @@ import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from pymongo import MongoClient
+from services.match_engine import analyze_resume_job_match
 import bcrypt
 import jwt
 from datetime import datetime, timedelta
@@ -517,6 +518,13 @@ def get_jobs_for_user():
         # CHECK IF WE FETCHED TODAY
         # =========================
         last_fetch = resume.get("last_job_fetch")
+
+        # convert string → datetime if needed
+        if isinstance(last_fetch, str):
+            try:
+                last_fetch = datetime.strptime(last_fetch, "%a, %d %b %Y %H:%M:%S %Z")
+            except:
+                last_fetch = None
         cached_jobs = resume.get("cached_jobs", [])
 
         if last_fetch and datetime.utcnow() - last_fetch < timedelta(hours=24):
@@ -573,6 +581,68 @@ def get_jobs_for_user():
 
     except Exception as e:
         print("Jobs route error:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/analyze-job-match', methods=['POST'])
+def analyze_job_match():
+
+    user_id = get_user_id_from_token(request)
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    try:
+        data = request.get_json()
+        job_description = data.get("job_description")
+
+        if not job_description:
+            return jsonify({"error": "Job description is required"}), 400
+
+        resume = resumes_collection.find_one({
+            "user_id": ObjectId(user_id)
+        })
+
+        if not resume:
+            return jsonify({"error": "Resume not found"}), 404
+
+        skills = resume.get("skills", "")
+        projects = resume.get("projects", [])
+
+        project_descriptions = []
+
+        for project in projects:
+
+            if isinstance(project, dict):
+
+                structured = project.get("structured")
+
+                if structured and structured.get("project_summary"):
+                    bullets = structured["project_summary"]
+                    bullets_text = " ".join([b[0] for b in bullets if b])
+                    project_descriptions.append(bullets_text)
+
+                else:
+                    project_descriptions.append(
+                        project.get("description", "")
+                    )
+
+            else:
+                project_descriptions.append(str(project))
+
+        try:
+            result = analyze_resume_job_match(
+                skills,
+                project_descriptions,
+                job_description
+            )
+        except Exception as e:
+            print("Match engine error:", e)
+            return jsonify({"error": "Match engine failure"}), 500
+
+        return jsonify(result), 200
+
+    except Exception as e:
+        print("Match analysis error:", e)
         return jsonify({"error": str(e)}), 500
 # ==============================================================================
 # RUN APP

@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import ResumePreview from './ResumePreview';
 
 function Dashboard({ resumeData, onEdit, token }) {
-
+  const navigate = useNavigate();
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [roles, setRoles] = useState([]);
@@ -13,6 +14,12 @@ function Dashboard({ resumeData, onEdit, token }) {
 
   const componentRef = useRef();
 
+  //effect for top scroll when we open the template previw 
+  useEffect(() => {
+    if (selectedTemplate) {
+      window.scrollTo(0, 0);  // 🔥 instant scroll
+    }
+  }, [selectedTemplate]);
   // ================= FETCH JOBS =================
   useEffect(() => {
     const fetchJobs = async () => {
@@ -136,8 +143,26 @@ function Dashboard({ resumeData, onEdit, token }) {
   }
 
   // ================= MAIN DASHBOARD VIEW =================
-  return (
-    <div>
+ return (
+  <div>
+
+    {/* ===== ANALYZER BUTTON ===== */}
+    <div style={{ marginBottom: "20px" }}>
+      <button
+        onClick={() => navigate("/analyzer")}
+        style={{
+          padding: "10px 16px",
+          background: "#007bff",
+          color: "white",
+          border: "none",
+          borderRadius: "6px",
+          cursor: "pointer",
+          fontWeight: "bold"
+        }}
+      >
+        🔎 Resume Job Analyzer
+      </button>
+    </div>
 
       {/* ===== JOB SECTION ===== */}
       <h2>Jobs For You</h2>

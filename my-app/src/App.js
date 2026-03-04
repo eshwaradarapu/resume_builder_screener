@@ -3,6 +3,8 @@ import AuthPage from "./AuthPage";
 import ResumeForm from "./ResumeForm";
 import Dashboard from "./Dashboard"; // Import the new Dashboard
 import axios from "axios";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import AnalyzerPage from "./AnalyzerPage";
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('resume_token'));
@@ -73,34 +75,56 @@ function App() {
   }
 
   return (
+  <Router>
     <div style={{ padding: "20px", fontFamily: "Arial" }}>
       <h1>AI Resume Builder</h1>
-      
+
       {!token ? (
-        // If not logged in, show the AuthPage
         <AuthPage onLoginSuccess={handleLoginSuccess} />
       ) : (
         <div>
-          <button onClick={handleLogout} style={{ float: 'right' }}>Logout</button>
-          
-          {userHasData ? (
-            // If the user has data, show the Dashboard
-           <Dashboard resumeData={resumeData} onEdit={handleEdit} token={token} />
-          ) : (
-            // If the user is new (no data), show the form
-            <ResumeForm
-  token={token}
-  onResumeCreated={handleResumeCreated}
-  initialData={resumeData}
-  mode={resumeData ? "edit" : "create"}
-  onBack={() => setUserHasData(true)}
-/>
 
-          )}
+          <button onClick={handleLogout} style={{ float: "right" }}>
+            Logout
+          </button>
+
+          <Routes>
+
+            {/* Dashboard */}
+            <Route
+              path="/"
+              element={
+                userHasData ? (
+                  <Dashboard
+                    resumeData={resumeData}
+                    onEdit={handleEdit}
+                    token={token}
+                  />
+                ) : (
+                  <ResumeForm
+                    token={token}
+                    onResumeCreated={handleResumeCreated}
+                    initialData={resumeData}
+                    mode={resumeData ? "edit" : "create"}
+                    onBack={() => setUserHasData(true)}
+                  />
+                )
+              }
+            />
+
+            {/* Analyzer Page */}
+            <Route
+              path="/analyzer"
+              element={<AnalyzerPage token={token} />}
+            />
+
+          </Routes>
+
         </div>
       )}
     </div>
-  );
+  </Router>
+);
 }
 
 export default App;
