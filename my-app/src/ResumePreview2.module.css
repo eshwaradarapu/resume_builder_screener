@@ -1,0 +1,104 @@
+body{
+  margin:0;
+}
+
+.container{
+  width:850px;
+  margin:auto;
+  padding:4px 30px 40px 30px;
+
+  font-family:"Times New Roman", Times, serif;
+  font-size:16px;
+  line-height:1.5;
+
+  color:#000;
+  background:white;
+}
+
+.header{
+  text-align:center;
+  margin-bottom:10px;
+}
+
+.header h1{
+  font-size:42px;
+  font-weight:700;
+  margin-bottom:2px;
+}
+
+.contact{
+  display:flex;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:18px;
+  font-size:17px;
+  margin-top:0;
+}
+
+h2{
+  font-size:24px;
+  font-weight:700;
+  border-bottom:1px solid #000;
+  padding-bottom:4px;
+
+  margin-top:20px;
+  margin-bottom:10px;
+}
+
+.eduBlock{
+  margin-bottom:4px;   /* space between BTech → Intermediate → School */
+}
+
+.eduItem{
+  display:flex;
+  justify-content:space-between;
+  font-weight:700;
+  margin-bottom:1px;   /* space between college name and next line */
+}
+
+.eduBlock p{
+  margin:0;
+  padding:0;
+  line-height:1.2;     /* tighter text lines */
+  font-size:17px;
+}
+.project h3{
+  font-size:18px;
+  font-weight:700;
+  margin-bottom:6px;
+}
+
+ul{
+  margin-left:18px;
+  margin-top:6px;
+}
+
+li{
+  margin-bottom:6px;
+  line-height:1.5;
+}
+
+a{
+  color:#000;
+  text-decoration:none;
+}
+
+a:hover{
+  text-decoration:underline;
+}
+
+/* PRINT (for Puppeteer PDF) */
+
+@media print{
+
+  body{
+    margin:0;
+  }
+
+  .container{
+    width:850px;
+    margin:-40px;
+    padding:4px 40px 40px 60px;
+  }
+
+}

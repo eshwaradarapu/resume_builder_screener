@@ -96,11 +96,16 @@ function AnalyzerPage({ token }) {
 
           <h3>Match Scores</h3>
 
-      <p><strong>Final Match:</strong> {result?.["final_match_%"]}%</p>
-<p><strong>Skill Score:</strong> {result?.["skill_score_%"]}%</p>
-<p><strong>Project Score:</strong> {result?.["project_score_%"]}%</p>
-<p><strong>Embedding Score:</strong> {result?.["embedding_score_%"]}%</p>
+      <p><strong>Final Match:</strong> {result?.scores?.["final_match_%"]}%</p>
 
+<p><strong>Skill Score:</strong> {result?.scores?.["skill_score_%"]}%</p>
+<p><strong>LLM Score:</strong> {result?.scores?.["llm_score_%"] ?? "N/A"}%</p>
+
+
+
+<p><strong>Project Score:</strong> {result?.scores?.["project_score_%"]}%</p>
+
+<p><strong>Embedding Score:</strong> {result?.scores?.["embedding_score_%"]}%</p>
           <hr />
 
           <h3>AI Analysis</h3>

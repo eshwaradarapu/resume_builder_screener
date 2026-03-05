@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import ResumePreview from './ResumePreview';
+import ResumePreview2 from "./ResumePreview2";
 
 function Dashboard({ resumeData, onEdit, token }) {
   const navigate = useNavigate();
@@ -124,6 +125,8 @@ function Dashboard({ resumeData, onEdit, token }) {
     switch (selectedTemplate) {
       case 'Custom':
         return <ResumePreview ref={componentRef} data={resumeData} />;
+      case 'ATS':
+        return <ResumePreview2 ref={componentRef} data={resumeData} />;
       default:
         return <div>Please select a template.</div>;
     }
@@ -254,6 +257,23 @@ function Dashboard({ resumeData, onEdit, token }) {
         >
           <h3 style={{ marginTop: '10px' }}>Modern Template</h3>
         </div>
+        
+         {/* TEMPLATE 2 */}
+        <div
+          onClick={() => setSelectedTemplate('ATS')}
+          style={{
+            border: '1px solid #ccc',
+            borderRadius: '8px',
+            padding: '20px',
+            width: '200px',
+            textAlign: 'center',
+            cursor: 'pointer',
+            boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+          }}
+        >
+          <h3 style={{ marginTop: '10px' }}>ATS Template</h3>
+        </div>
+
       </div>
     </div>
   );
