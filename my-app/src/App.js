@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import AuthPage from "./AuthPage";
 import ResumeForm from "./ResumeForm";
-import Dashboard from "./Dashboard"; // Import the new Dashboard
+import Dashboard from "./Dashboard";
+import Templates from "./Templates";
+import Layout from "./Layout";
 import axios from "axios";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import AnalyzerPage from "./AnalyzerPage";
 
 function App() {
@@ -22,7 +24,7 @@ function App() {
           const response = await axios.get('http://localhost:5000/api/resume', {
             headers: { 'Authorization': `Bearer ${token}` }
           });
-          
+
           if (response.data && Object.keys(response.data).length > 0) {
             // If data exists, the user has a resume.
             setResumeData(response.data);
@@ -50,13 +52,13 @@ function App() {
   };
 
   const handleLogout = () => {
-  localStorage.removeItem('resume_token');
+    localStorage.removeItem('resume_token');
 
-  // 🔥 RESET USER-SCOPED STATE
-  setToken(null);
-  setResumeData(null);
-  setUserHasData(false);
-};
+    // 🔥 RESET USER-SCOPED STATE
+    setToken(null);
+    setResumeData(null);
+    setUserHasData(false);
+  };
 
   // This function is called by the form after a new resume is created
   const handleResumeCreated = (newData) => {
@@ -66,65 +68,63 @@ function App() {
 
   // This is called from the Dashboard to go back to the form for editing
   const handleEdit = () => {
-    setUserHasData(false); 
+    setUserHasData(false);
   };
-  
+
   // While checking the user's status, show a loading message
   if (isLoading && token) {
-    return <div style={{textAlign: 'center', marginTop: '50px'}}>Loading...</div>;
+    return <div style={{ textAlign: 'center', marginTop: '50px' }}>Loading...</div>;
   }
 
   return (
-  <Router>
-    <div style={{ padding: "20px", fontFamily: "Arial" }}>
-      <h1>AI Resume Builder</h1>
-
+    <Router>
       {!token ? (
         <AuthPage onLoginSuccess={handleLoginSuccess} />
       ) : (
-        <div>
-
-          <button onClick={handleLogout} style={{ float: "right" }}>
-            Logout
-          </button>
-
+        <Layout handleLogout={handleLogout}>
           <Routes>
-
-            {/* Dashboard */}
+            {/* Always land on Dashboard first after login */}
             <Route
               path="/"
+              element={<Dashboard token={token} />}
+            />
+            <Route
+              path="/templates"
               element={
                 userHasData ? (
-                  <Dashboard
-                    resumeData={resumeData}
-                    onEdit={handleEdit}
-                    token={token}
-                  />
+                  <Templates resumeData={resumeData} />
                 ) : (
-                  <ResumeForm
-                    token={token}
-                    onResumeCreated={handleResumeCreated}
-                    initialData={resumeData}
-                    mode={resumeData ? "edit" : "create"}
-                    onBack={() => setUserHasData(true)}
-                  />
+                  <Navigate to="/profile" replace />
                 )
               }
             />
-
-            {/* Analyzer Page */}
             <Route
               path="/analyzer"
-              element={<AnalyzerPage token={token} />}
+              element={
+                userHasData ? (
+                  <AnalyzerPage token={token} />
+                ) : (
+                  <Navigate to="/profile" replace />
+                )
+              }
             />
-
+            <Route
+              path="/profile"
+              element={
+                <ResumeForm
+                  token={token}
+                  onResumeCreated={handleResumeCreated}
+                  initialData={resumeData}
+                  mode={resumeData ? "edit" : "create"}
+                  onBack={userHasData ? () => { } : undefined} // Removed back button action if they don't have data, else it's optional
+                />
+              }
+            />
           </Routes>
-
-        </div>
+        </Layout>
       )}
-    </div>
-  </Router>
-);
+    </Router>
+  );
 }
 
 export default App;

@@ -1,26 +1,13 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
 import axios from "axios";
-import ResumePreview from './ResumePreview';
-import ResumePreview2 from "./ResumePreview2";
 
-function Dashboard({ resumeData, onEdit, token }) {
-  const navigate = useNavigate();
-  const [selectedTemplate, setSelectedTemplate] = useState(null);
+function Dashboard({ token }) {
   const [jobs, setJobs] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [timeAgo, setTimeAgo] = useState("");
 
-  const componentRef = useRef();
-
-  //effect for top scroll when we open the template previw 
-  useEffect(() => {
-    if (selectedTemplate) {
-      window.scrollTo(0, 0);  // 🔥 instant scroll
-    }
-  }, [selectedTemplate]);
   // ================= FETCH JOBS =================
   useEffect(() => {
     const fetchJobs = async () => {
@@ -75,206 +62,139 @@ function Dashboard({ resumeData, onEdit, token }) {
     return () => clearInterval(interval);
   }, [lastUpdated]);
 
-  // ================= PDF DOWNLOAD =================
-  const handleDownloadPDF = async () => {
-    if (!componentRef.current) return;
-
-    const html = componentRef.current.outerHTML;
-
-    const styles = Array.from(document.querySelectorAll("style, link[rel='stylesheet']"))
-      .map(el => el.outerHTML)
-      .join("\n");
-
-    const fullHTML = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8" />
-          ${styles}
-        </head>
-        <body>
-          ${html}
-        </body>
-      </html>
-    `;
-
-    try {
-      const res = await fetch("http://localhost:5000/api/generate-pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html: fullHTML })
-      });
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "resume.pdf";
-      a.click();
-
-      window.URL.revokeObjectURL(url);
-
-    } catch (err) {
-      console.error("PDF download failed:", err);
-    }
-  };
-
-  // ================= TEMPLATE RENDER =================
-  const renderSelectedTemplate = () => {
-    switch (selectedTemplate) {
-      case 'Custom':
-        return <ResumePreview ref={componentRef} data={resumeData} />;
-      case 'ATS':
-        return <ResumePreview2 ref={componentRef} data={resumeData} />;
-      default:
-        return <div>Please select a template.</div>;
-    }
-  };
-
-  // ================= TEMPLATE VIEW MODE =================
-  if (selectedTemplate) {
-    return (
-      <div>
-        <div style={{ marginBottom: "20px", display: "flex", gap: "10px" }}>
-          <button onClick={() => setSelectedTemplate(null)}>← Back to Templates</button>
-          <button onClick={handleDownloadPDF}>📄 Download as PDF</button>
-        </div>
-        {renderSelectedTemplate()}
-      </div>
-    );
-  }
-
   // ================= MAIN DASHBOARD VIEW =================
- return (
-  <div>
+  return (
+    <div style={{ animation: "fadeIn 0.4s ease-out" }}>
 
-    {/* ===== ANALYZER BUTTON ===== */}
-    <div style={{ marginBottom: "20px" }}>
-      <button
-        onClick={() => navigate("/analyzer")}
-        style={{
-          padding: "10px 16px",
-          background: "#007bff",
-          color: "white",
-          border: "none",
-          borderRadius: "6px",
-          cursor: "pointer",
-          fontWeight: "bold"
-        }}
-      >
-        🔎 Resume Job Analyzer
-      </button>
-    </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+        <div>
+          <p className="page-kicker">AI Resume Builder · Dashboard</p>
+          <h1 className="page-header">Recommended Opportunities</h1>
+          <p className="page-description" style={{ marginBottom: 0 }}>
+            Curated opportunities based on your AI-analyzed resume profile.
+          </p>
+        </div>
 
-      {/* ===== JOB SECTION ===== */}
-      <h2>Jobs For You</h2>
-
-      {/* ⭐ Last Updated Timer */}
-   {lastUpdated && (
-  <div style={{
-    marginBottom: "15px",
-    padding: "10px 15px",
-    background: "#f0f8ff",
-    borderLeft: "4px solid #007bff",
-    borderRadius: "6px",
-    fontSize: "14px",
-    fontWeight: "500",
-    color: "#333",
-    fontWeight: "bold",
-    display: "inline-block"
-  }}>
-    ⏳ Last updated: <span style={{ color: "#007bff" }}>{timeAgo}</span>
-  </div>
-)}
+        {/* ⭐ Last Updated Timer */}
+        {lastUpdated && (
+          <div style={{
+            padding: "8px 16px",
+            background: "rgba(79, 70, 229, 0.1)",
+            border: "1px solid rgba(79, 70, 229, 0.2)",
+            borderRadius: "20px",
+            fontSize: "13px",
+            fontWeight: "600",
+            color: "var(--layout-primary)",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px"
+          }}>
+            <span style={{ fontSize: '16px' }}>⏱️</span> Updated {timeAgo}
+          </div>
+        )}
+      </div>
 
       {loadingJobs ? (
-        <p>Loading jobs...</p>
+        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--layout-text-muted)' }}>
+          <div style={{
+            display: 'inline-block',
+            width: '40px',
+            height: '40px',
+            border: '3px solid rgba(79, 70, 229, 0.2)',
+            borderTopColor: 'var(--layout-primary)',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            marginBottom: '16px'
+          }} />
+          <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
+          <p style={{ margin: 0, fontWeight: 500 }}>Scanning for the best matches...</p>
+        </div>
       ) : (
         <>
-          {/* Recommended Roles */}
+          {/* Recommended Roles Section */}
           {roles.length > 0 && (
-            <div style={{ marginBottom: "15px" }}>
-              <strong>Recommended Roles:</strong><br/>
-              {roles.map((r, i) => (
-                <span key={i} style={{
-                  padding: "6px 12px",
-                  margin: "5px",
-                  background: "#e6f2ff",
-                  borderRadius: "20px",
-                  display: "inline-block"
-                }}>
-                  {r}
-                </span>
-              ))}
+            <div className="premium-card" style={{ marginBottom: "32px", padding: '24px' }}>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>🎯</span> Recommended Roles
+              </h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                {roles.map((r, i) => (
+                  <span key={i} style={{
+                    padding: "8px 16px",
+                    background: "linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(236, 72, 153, 0.1))",
+                    border: "1px solid rgba(79, 70, 229, 0.2)",
+                    color: "var(--layout-text-main)",
+                    borderRadius: "20px",
+                    fontWeight: "500",
+                    fontSize: "14px"
+                  }}>
+                    {r}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* Job Cards */}
-          {jobs.length === 0 ? (
-            <p>No jobs available yet.</p>
-          ) : (
-            jobs.map((job, i) => (
-              <div key={i} style={{
-                border: "1px solid #ddd",
-                padding: "12px",
-                marginBottom: "10px",
-                borderRadius: "6px"
-              }}>
-                <strong>{job.title}</strong><br/>
-                {job.organization}<br/>
-                {job.locations_derived?.[0]?.city || ""}<br/>
-
-                <a href={job.url} target="_blank" rel="noreferrer">
-                  Apply
-                </a>
+          {/* Job Cards Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gap: '24px'
+          }}>
+            {jobs.length === 0 ? (
+              <div className="premium-card" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px 20px' }}>
+                <p style={{ fontSize: '18px', color: 'var(--layout-text-muted)', margin: 0 }}>No jobs found for your profile yet.</p>
+                <p style={{ fontSize: '14px', color: 'var(--layout-text-muted)', marginTop: '8px' }}>Try updating your location or skills in your profile.</p>
               </div>
-            ))
-          )}
+            ) : (
+              jobs.map((job, i) => (
+                <div key={i} className="premium-card" style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  padding: '24px'
+                }}>
+                  {/* Decorative accent top border */}
+                  <div style={{
+                    position: 'absolute',
+                    top: 0, left: 0, right: 0, height: '4px',
+                    background: 'linear-gradient(to right, var(--layout-primary), var(--layout-secondary))'
+                  }} />
+
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: '18px', color: 'var(--layout-text-main)', lineHeight: 1.4 }}>
+                    {job.title}
+                  </h4>
+
+                  <div style={{ color: 'var(--layout-text-muted)', fontSize: '14px', marginBottom: '24px', flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '16px' }}>🏢</span>
+                      <span style={{ fontWeight: 500, color: 'var(--layout-text-main)' }}>{job.organization}</span>
+                    </div>
+
+                    {job.locations_derived?.[0]?.city && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '16px' }}>📍</span>
+                        <span>{job.locations_derived[0].city}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <a
+                    href={job.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="premium-btn"
+                    style={{ textDecoration: 'none', width: '100%', boxSizing: 'border-box' ,color:'black'}}
+                  >
+                    Apply Now <span>↗</span>
+                  </a>
+                </div>
+              ))
+            )}
+          </div>
         </>
       )}
-
-      <hr style={{ margin: "30px 0" }} />
-
-      {/* ===== TEMPLATE SECTION ===== */}
-      <h2>Choose a Template</h2>
-      <p>Select a template to view your resume.</p>
-
-      <button onClick={onEdit}>✏️ Edit Resume Data</button>
-
-      <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
-        <div
-          onClick={() => setSelectedTemplate('Custom')}
-          style={{
-            border: '1px solid #ccc',
-            borderRadius: '8px',
-            padding: '20px',
-            width: '200px',
-            textAlign: 'center',
-            cursor: 'pointer',
-            boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
-          }}
-        >
-          <h3 style={{ marginTop: '10px' }}>Modern Template</h3>
-        </div>
-        
-         {/* TEMPLATE 2 */}
-        <div
-          onClick={() => setSelectedTemplate('ATS')}
-          style={{
-            border: '1px solid #ccc',
-            borderRadius: '8px',
-            padding: '20px',
-            width: '200px',
-            textAlign: 'center',
-            cursor: 'pointer',
-            boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
-          }}
-        >
-          <h3 style={{ marginTop: '10px' }}>ATS Template</h3>
-        </div>
-
-      </div>
     </div>
   );
 }
